@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
+// React Compiler включён через reactCompilerPreset из @vitejs/plugin-react v6+
+// Демо-компоненты с "use no memo" явно отключают автомемоизацию для наглядности
 export default defineConfig({
   plugins: [react()],
 })

@@ -25,3 +25,5 @@ dist-ssr
 
 # PDF source materials
 docs/*.pdf
+poppler.zip
+poppler_bin/

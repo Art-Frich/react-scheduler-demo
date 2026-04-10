@@ -4,6 +4,8 @@ import SlowChat from "./sections/SlowChat";
 import FastChat from "./sections/FastChat";
 import SchedulerVisualizer from "./sections/SchedulerVisualizer";
 import EventLoop from "./sections/EventLoop";
+import DeferredSearch from "./sections/DeferredSearch";
+import TearingDemo from "./sections/TearingDemo";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("slow");
@@ -15,6 +17,8 @@ export default function App() {
       {tab === "fast" && <FastChat />}
       {tab === "visualizer" && <SchedulerVisualizer />}
       {tab === "eventloop" && <EventLoop />}
+      {tab === "deferred" && <DeferredSearch />}
+      {tab === "tearing" && <TearingDemo />}
     </>
   );
 }
