@@ -1,73 +1,31 @@
-# React + TypeScript + Vite
+# React Scheduler Demo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Интерактивный учебный проект, демонстрирующий как React 19 планирует и откладывает обновления.
+Основан на материале главы 7 книги **"Конкурентный React"** (стр. 225-259).
 
-Currently, two official plugins are available:
+## Разделы
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| # | Раздел | Что демонстрирует |
+|---|--------|-------------------|
+| 1 | **SlowChat** | Проблема: синхронные обновления блокируют UI |
+| 2 | **FastChat** | Решение: `useTransition` + A/B переключатель |
+| 3 | **SchedulerVisualizer** | Визуализация механизма: `ensureRootIsScheduled`, event loop, lanes |
+| 4 | **DeferredSearch** | `useDeferredValue` — поиск по списку из 20 000 элементов |
+| 5 | **TearingDemo** | Tearing при конкурентном рендере и `useSyncExternalStore` |
+| 6 | **EventLoop** | Интерактивная диаграмма браузерного event loop |
 
-## React Compiler
+## Запуск
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Откроется на `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Стек
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **React 19** + TypeScript + Vite
+- **React Compiler** (`babel-plugin-react-compiler`)
+- **Framer Motion** — анимации
+- CSS — темная тема, без UI-библиотек
