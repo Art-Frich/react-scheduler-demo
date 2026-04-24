@@ -1,4 +1,4 @@
-export type Tab = "slow" | "fast" | "visualizer" | "eventloop" | "deferred" | "tearing";
+export type Tab = "slow" | "fast" | "visualizer" | "eventloop" | "deferred" | "tearing" | "quiz";
 
 interface Props {
   active: Tab;
@@ -12,6 +12,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "eventloop", label: "4. Event Loop" },
   { id: "deferred", label: "5. useDeferredValue" },
   { id: "tearing", label: "6. Разрыв (Tearing)" },
+  { id: "quiz", label: "7. Проверь себя" },
 ];
 
 export default function Nav({ active, onChange }: Props) {

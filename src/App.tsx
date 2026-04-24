@@ -6,6 +6,7 @@ import SchedulerVisualizer from "./sections/SchedulerVisualizer";
 import EventLoop from "./sections/EventLoop";
 import DeferredSearch from "./sections/DeferredSearch";
 import TearingDemo from "./sections/TearingDemo";
+import Quiz from "./sections/Quiz";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("slow");
@@ -19,6 +20,7 @@ export default function App() {
       {tab === "eventloop" && <EventLoop />}
       {tab === "deferred" && <DeferredSearch />}
       {tab === "tearing" && <TearingDemo />}
+      {tab === "quiz" && <Quiz />}
     </>
   );
 }

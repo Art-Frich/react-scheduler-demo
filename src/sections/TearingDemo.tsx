@@ -1,81 +1,68 @@
 import { useState, useTransition, useSyncExternalStore } from "react";
 
-// Глобальный счётчик — обновляется вне React каждую миллисекунду
-let count = 0;
-const intervalId = setInterval(() => { count++; }, 1);
+// === СТРОГО ПО КНИГЕ (стр. 247-253) ===
 
-// Очищаем при HMR
+// Внешнее состояние
+let count = 0;
+const intervalId = setInterval(() => count++, 1);
+
 if (import.meta.hot) {
   import.meta.hot.dispose(() => clearInterval(intervalId));
 }
 
-// Store для useSyncExternalStore
-const countStore = {
-  subscribe(cb: () => void) {
-    const id = setInterval(cb, 1);
-    return () => clearInterval(id);
+// Store для fix-версии (стр. 253)
+const store = {
+  subscribe() {
+    // Пустая подписка — нам не нужны фоновые ре-рендеры
+    return () => {};
   },
   getSnapshot() {
     return count;
   },
 };
 
-// "use no memo" — отключаем React Compiler, чтобы компонент честно ре-рендерился
-function ExpensiveItem({ fixTearing, baseCount }: { fixTearing: boolean; baseCount: number }) {
-  "use no memo";
-
-  // С fix: useSyncExternalStore гарантирует один снимок для всех экземпляров
-  // Без fix: читаем глобальную переменную напрямую — разные моменты времени
-  const syncCount = useSyncExternalStore(
-    countStore.subscribe,
-    countStore.getSnapshot
-  );
-
-  // Блокируем поток ~80мс — имитация дорогого рендера
-  const start = performance.now();
-  while (performance.now() - start < 80) {
-    // ждём
+// Разбитая версия — один в один из книги (стр. 248)
+const ExpensiveComponent = () => {
+  const now = performance.now();
+  while (performance.now() - now < 100) {
+    // Ничего не делаем, просто ждём
   }
+  return <>Expensive count is {count}</>;
+};
 
-  const displayCount = fixTearing ? syncCount : count;
-  const isTorn = !fixTearing && displayCount !== baseCount;
-
-  return (
-    <div className={`expensive-item ${isTorn ? "torn" : "consistent"}`}>
-      <span className="expensive-label">Expensive count is</span>
-      <span className={`expensive-value ${isTorn ? "torn-value" : "ok-value"}`}>
-        {displayCount}
-      </span>
-      {isTorn && <span className="torn-badge">разрыв</span>}
-    </div>
+// Исправленная версия — из книги (стр. 253)
+const ExpensiveComponentFixed = () => {
+  // Вместо глобального чтения count — хук для согласованного состояния
+  const consistentCount = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot
   );
-}
+  const now = performance.now();
+  while (performance.now() - now < 100) {
+    // Ничего не делаем
+  }
+  return <>Expensive count is {consistentCount}</>;
+};
 
 export default function TearingDemo() {
   const [name, setName] = useState("");
+  const [isPending, startTransition] = useTransition();
   const [fixTearing, setFixTearing] = useState(false);
-  const [, startTransition] = useTransition();
-  const [tearCount, setTearCount] = useState(0);
-  const [renderKey, setRenderKey] = useState(0);
 
-  // Базовое значение на момент начала рендера — для детекции разрывов
-  const [baseCount, setBaseCount] = useState(count);
-
-  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
+  const updateName = (newVal: string) => {
     startTransition(() => {
-      setName(val);
-      setBaseCount(count); // базовое значение на момент начала рендера
-      setRenderKey(k => k + 1);
+      setName(newVal);
     });
   };
 
+  const Item = fixTearing ? ExpensiveComponentFixed : ExpensiveComponent;
+
   return (
     <div className="section">
-      <h2>Разрыв (Tearing) и useSyncExternalStore</h2>
+      <h2>Разрыв (Tearing)</h2>
       <p className="subtitle">
-        Введите текст быстро — React прерывает рендер чтобы обновить инпут, и 5 компонентов
-        читают глобальный счётчик в разные моменты времени.
+        Пример один в один из книги. Печатай в поле — должны появляться разные значения count
+        в экземплярах ExpensiveComponent (иногда, не всегда).
       </p>
 
       <div className="chat-container">
@@ -84,20 +71,19 @@ export default function TearingDemo() {
             <input
               className="deferred-input"
               value={name}
-              onChange={handleInput}
-              placeholder="Быстро печатайте сюда для провокации разрыва..."
+              onChange={(e) => updateName(e.target.value)}
+              placeholder="Печатай..."
             />
+            {isPending && <span className="stale-badge">Loading...</span>}
           </div>
 
-          <div className="tearing-items" key={renderKey}>
-            {Array.from({ length: 5 }, (_, i) => (
-              <ExpensiveItem
-                key={i}
-                fixTearing={fixTearing}
-                baseCount={baseCount}
-              />
-            ))}
-          </div>
+          <ul className="tearing-items" style={{ listStyle: "none", padding: 0 }}>
+            <li className="expensive-item-v2"><Item /></li>
+            <li className="expensive-item-v2"><Item /></li>
+            <li className="expensive-item-v2"><Item /></li>
+            <li className="expensive-item-v2"><Item /></li>
+            <li className="expensive-item-v2"><Item /></li>
+          </ul>
         </div>
 
         <div className="chat-sidebar">
@@ -118,34 +104,32 @@ export default function TearingDemo() {
             </div>
           </div>
 
-          <div className="tear-counter-card">
-            <div className="tear-counter-label">Разрывов замечено</div>
-            <div className="tear-counter-value">{tearCount}</div>
-            <button className="tear-reset-btn" onClick={() => setTearCount(0)}>сбросить</button>
+          <div className="hint-card">
+            <div className="hint-title">Цитата из книги</div>
+            <div style={{ fontSize: "0.82rem", color: "var(--text-dim)", fontStyle: "italic", lineHeight: 1.6 }}>
+              «Мы ожидаем увидеть несогласованные значения count... React «останавливает» рендеринг
+              при вводе пользователем данных... оставляя устаревшее значение count.
+              <strong style={{ color: "var(--text)", fontStyle: "normal" }}> Но не каждый раз, только иногда.</strong>»
+              <div style={{ marginTop: 6, color: "var(--text-dim)" }}>— стр. 249</div>
+            </div>
           </div>
 
           <div className="info-card">
             {fixTearing ? (
               <>
-                <strong style={{ color: "var(--accent-micro)" }}>
-                  useSyncExternalStore
-                </strong>{" "}
-                гарантирует: все 5 экземпляров получают{" "}
-                <strong>один снимок</strong> значения за рендер.
+                <strong style={{ color: "var(--accent-micro)" }}>useSyncExternalStore</strong>{" "}
+                гарантирует одинаковое значение <code>count</code> во всех экземплярах за один рендер.
                 <br /><br />
-                <code>getSnapshot()</code> вызывается синхронно и возвращает одно и то же
-                значение для всех компонентов в этом рендере.
+                Разрыв устранён — числа всегда синхронны.
               </>
             ) : (
               <>
-                <strong style={{ color: "var(--accent-sync)" }}>
-                  Без защиты:
-                </strong>{" "}
-                каждый компонент читает <code>count</code> напрямую.
-                Конкурентный рендер прерывается ради ввода — и за эти ~80мс
-                счётчик успевает вырасти. Числа расходятся.
+                <strong style={{ color: "var(--accent-sync)" }}>Без защиты:</strong>{" "}
+                каждый <code>ExpensiveComponent</code> читает глобальный <code>count</code> в момент
+                своего рендера. React может прервать рендер ради ввода — и после возобновления
+                следующие компоненты увидят уже новый <code>count</code>.
                 <br /><br />
-                Это и есть <strong>разрыв</strong> — UI показывает несогласованное состояние.
+                Разрыв проявляется не стабильно — нужно печатать, чтобы спровоцировать прерывания.
               </>
             )}
           </div>
