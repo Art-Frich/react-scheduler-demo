@@ -22,7 +22,6 @@ export default function SlowChat() {
       setStreaming(false);
     } else {
       stopRef.current = startFakeStream((msg) => {
-        // Синхронное обновление — блокирует UI
         setMessages((prev) => [...prev, msg]);
       }, 200);
       setStreaming(true);

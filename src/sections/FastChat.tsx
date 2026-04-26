@@ -13,7 +13,6 @@ export default function FastChat() {
   const [isPending, startTransition] = useTransition();
   const stopRef = useRef<(() => void) | null>(null);
 
-  // Restart stream when mode changes
   useEffect(() => {
     if (!streaming) return;
     stopRef.current?.();

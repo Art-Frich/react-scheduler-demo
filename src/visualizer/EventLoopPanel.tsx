@@ -95,7 +95,6 @@ export default function EventLoopPanel({ state }: Props) {
 
   return (
     <div className="flow-panel">
-      {/* Row 1: Call Stack */}
       <QueueBox
         title="Call Stack"
         items={state.callStack}
@@ -104,10 +103,8 @@ export default function EventLoopPanel({ state }: Props) {
         glowing={hasStack}
       />
 
-      {/* Arrow: stack → root schedule */}
       <FlowArrow label="добавляет root" color="var(--accent-purple)" active={state.rootSchedule.length > 0 && hasStack} />
 
-      {/* Row 2: Root Schedule linked list */}
       <QueueBox
         title="Root Schedule (linked list)"
         items={state.rootSchedule}
@@ -116,10 +113,8 @@ export default function EventLoopPanel({ state }: Props) {
         glowing={state.rootSchedule.length > 0}
       />
 
-      {/* Arrow: root → microtask */}
       <FlowArrow label="scheduleImmediateTask()" color="var(--accent-micro)" active={hasMicro} />
 
-      {/* Row 3: Microtask Queue */}
       <QueueBox
         title="Microtask Queue"
         items={state.microtaskQueue}
@@ -128,7 +123,6 @@ export default function EventLoopPanel({ state }: Props) {
         glowing={hasMicro}
       />
 
-      {/* Fork: sync vs transition */}
       <div className="flow-fork">
         <div className="flow-fork-branch">
           <div className="flow-fork-label sync">
@@ -161,7 +155,6 @@ export default function EventLoopPanel({ state }: Props) {
         </div>
       </div>
 
-      {/* Row 4: Macrotask Queue */}
       <QueueBox
         title="Macrotask Queue (via MessageChannel)"
         items={state.macrotaskQueue}
@@ -170,7 +163,6 @@ export default function EventLoopPanel({ state }: Props) {
         glowing={hasMacro}
       />
 
-      {/* Flag + paint indicator */}
       <div className="flow-bottom-row">
         <div className="flag-row">
           <span className={`flag-dot ${state.flagSync ? "on" : ""}`} />

@@ -127,14 +127,14 @@ const QUESTIONS: Question[] = [
 ];
 
 interface AnswerState {
-  [questionIdx: number]: number; // индекс выбранного варианта
+  [questionIdx: number]: number;
 }
 
 export default function Quiz() {
   const [answers, setAnswers] = useState<AnswerState>({});
 
   const handleSelect = (qIdx: number, optIdx: number) => {
-    if (answers[qIdx] !== undefined) return; // нельзя переотвечать
+    if (answers[qIdx] !== undefined) return;
     setAnswers({ ...answers, [qIdx]: optIdx });
   };
 

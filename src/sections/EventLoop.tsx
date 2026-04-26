@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Task model with side effects ───────────────────────────
-// When a task executes, it can spawn new tasks into other queues
-
 interface TaskTemplate {
   label: string;
   spawnMicro?: TaskTemplate[];
@@ -37,12 +34,9 @@ const PHASE_LABELS: Record<Phase, string> = {
 let nextId = 1;
 const nid = () => nextId++;
 
-// Convert a spawnable task template into a full Task with id
 function materialize(t: TaskTemplate): Task {
   return { ...t, id: nid() };
 }
-
-// ─── Scenarios ──────────────────────────────────────────────
 
 function buildSyncScenario(): { stack: Task[]; micro: Task[]; macro: Task[] } {
   return {
@@ -128,8 +122,6 @@ function buildTransitionScenario(): { stack: Task[]; micro: Task[]; macro: Task[
   };
 }
 
-// ─── Component ──────────────────────────────────────────────
-
 export default function EventLoop() {
   const stackRef = useRef<Task[]>([]);
   const microRef = useRef<Task[]>([]);
@@ -169,7 +161,6 @@ export default function EventLoop() {
     setLog((prev) => [...prev, { id: nid(), text, color }]);
   };
 
-  // Execute a task: pop from stack, spawn side effects, show in log
   const executeTask = async (task: Task, source: string) => {
     const color = task.logColor || (
       source === "stack" ? "var(--accent-purple)" :
@@ -181,7 +172,6 @@ export default function EventLoop() {
       addLog(`    ↳ ${task.logNote}`, "var(--text-dim)");
     }
 
-    // Spawn side effects with visual delay
     if (task.spawnMicro?.length) {
       for (const t of task.spawnMicro) {
         await wait(300);
@@ -210,14 +200,11 @@ export default function EventLoop() {
     await wait(400);
   };
 
-  // ─── Main cycle ──────────────────────────────────────────
-
   const runCycle = async () => {
     if (isRunning) return;
     setIsRunning(true);
     abortRef.current = false;
 
-    // ── Phase 1: Execute Call Stack (pop from top) ──
     setPhase("executing");
     addLog("▸ Выполняем Call Stack", "var(--accent-purple)");
     await wait(500);
@@ -231,7 +218,6 @@ export default function EventLoop() {
 
     if (abortRef.current) { setIsRunning(false); return; }
 
-    // ── Phase 2: Drain Microtask Queue ──
     setPhase("checking-micro");
     addLog("▸ Проверяем Microtask Queue...", "var(--accent-micro)");
     await wait(400);
@@ -242,14 +228,12 @@ export default function EventLoop() {
         const task = microRef.current[0];
         microRef.current = microRef.current.slice(1);
         sync();
-        // Microtask goes to call stack
         stackRef.current = [materialize({ label: task.label })];
         sync();
         await executeTask(task, "micro");
         stackRef.current = [];
         sync();
 
-        // If execution spawned new stack frames, drain them
         while (stackRef.current.length > 0 && !abortRef.current) {
           const f = stackRef.current[stackRef.current.length - 1];
           stackRef.current = stackRef.current.slice(0, -1);
@@ -265,7 +249,6 @@ export default function EventLoop() {
 
     if (abortRef.current) { setIsRunning(false); return; }
 
-    // ── Phase 3: Paint ──
     setPhase("paint");
     addLog("▸ Браузер рисует кадр (rAF → paint → composite)", "var(--accent-transition)");
     addLog("  UI обновлён, пользователь видит изменения", "var(--text-dim)");
@@ -273,7 +256,6 @@ export default function EventLoop() {
 
     if (abortRef.current) { setIsRunning(false); return; }
 
-    // ── Phase 4: Pick one Macrotask ──
     setPhase("checking-macro");
     if (macroRef.current.length > 0) {
       addLog("▸ Берём макрозадачу из очереди", "var(--accent-macro)");
@@ -288,7 +270,6 @@ export default function EventLoop() {
       stackRef.current = [];
       sync();
 
-      // Drain any spawned stack frames
       while (stackRef.current.length > 0 && !abortRef.current) {
         const f = stackRef.current[stackRef.current.length - 1];
         stackRef.current = stackRef.current.slice(0, -1);
@@ -296,7 +277,6 @@ export default function EventLoop() {
         await executeTask(f, "stack");
       }
 
-      // After macrotask — drain microtasks again
       if (microRef.current.length > 0 && !abortRef.current) {
         setPhase("micro-drain");
         addLog("▸ После макрозадачи — проверяем микрозадачи", "var(--accent-micro)");
@@ -323,7 +303,6 @@ export default function EventLoop() {
       await wait(300);
     }
 
-    // Check if there are remaining macrotasks (another cycle needed)
     if (macroRef.current.length > 0) {
       addLog("", "var(--border)");
       addLog("  Ещё есть макрозадачи — нужен следующий цикл event loop", "var(--text-dim)");
@@ -333,8 +312,6 @@ export default function EventLoop() {
     addLog("─────────────────────────────", "var(--border)");
     setIsRunning(false);
   };
-
-  // ─── Manual task adders ──────────────────────────────────
 
   const pushStack = (label: string) => {
     stackRef.current = [...stackRef.current, { id: nid(), label }];
@@ -348,8 +325,6 @@ export default function EventLoop() {
     macroRef.current = [...macroRef.current, { id: nid(), label }];
     sync();
   };
-
-  // ─── Scenario loaders ───────────────────────────────────
 
   const loadScenario = (builder: () => { stack: Task[]; micro: Task[]; macro: Task[] }, name: string) => {
     const s = builder();
@@ -375,8 +350,6 @@ export default function EventLoop() {
       abortRef.current = false;
     }, 100);
   };
-
-  // ─── Render ──────────────────────────────────────────────
 
   return (
     <div className="section">

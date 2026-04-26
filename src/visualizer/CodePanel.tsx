@@ -34,7 +34,6 @@ export default function CodePanel({ lines, highlightLines, activeSection }: Prop
 
   const highlightSet = new Set(highlightLines);
 
-  // Determine section background for each line
   const getLineBg = (i: number): string | undefined => {
     if (highlightSet.has(i)) return "rgba(77, 159, 255, 0.18)";
     if (activeSection) {

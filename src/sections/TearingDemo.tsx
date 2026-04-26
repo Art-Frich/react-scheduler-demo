@@ -1,8 +1,5 @@
 import { useState, useTransition, useSyncExternalStore } from "react";
 
-// === СТРОГО ПО КНИГЕ (стр. 247-253) ===
-
-// Внешнее состояние
 let count = 0;
 const intervalId = setInterval(() => count++, 1);
 
@@ -10,10 +7,8 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => clearInterval(intervalId));
 }
 
-// Store для fix-версии (стр. 253)
 const store = {
   subscribe() {
-    // Пустая подписка — нам не нужны фоновые ре-рендеры
     return () => {};
   },
   getSnapshot() {
@@ -21,26 +16,19 @@ const store = {
   },
 };
 
-// Разбитая версия — один в один из книги (стр. 248)
 const ExpensiveComponent = () => {
   const now = performance.now();
-  while (performance.now() - now < 100) {
-    // Ничего не делаем, просто ждём
-  }
+  while (performance.now() - now < 100);
   return <>Expensive count is {count}</>;
 };
 
-// Исправленная версия — из книги (стр. 253)
 const ExpensiveComponentFixed = () => {
-  // Вместо глобального чтения count — хук для согласованного состояния
   const consistentCount = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot
   );
   const now = performance.now();
-  while (performance.now() - now < 100) {
-    // Ничего не делаем
-  }
+  while (performance.now() - now < 100);
   return <>Expensive count is {consistentCount}</>;
 };
 

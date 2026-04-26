@@ -1,18 +1,16 @@
-// Each step describes the state of all visual elements at that point in time.
-
 export interface VizState {
   callStack: string[];
   rootSchedule: string[];
   microtaskQueue: string[];
   macrotaskQueue: string[];
   flagSync: boolean;
-  laneSyncFill: number;       // 0..100
-  laneTransitionFill: number; // 0..100
-  timelineProgress: number;   // 0..100
-  highlightLines: number[];   // line indices in code panel (0-based), supports ranges
+  laneSyncFill: number;
+  laneTransitionFill: number;
+  timelineProgress: number;
+  highlightLines: number[];
   activeSection: "ensure" | "process" | "schedule" | null;
   comment: string;
-  paintReady: boolean;        // browser can paint
+  paintReady: boolean;
 }
 
 export interface Scenario {
@@ -22,148 +20,142 @@ export interface Scenario {
   codeLines: string[];
 }
 
-// ═══════════════════════════════════════════════════════════════
-// REAL React 19 source code (from facebook/react main branch)
-// packages/react-reconciler/src/ReactFiberRootScheduler.js
-// SHA: 1b45e2439289fd8e094c44161c89e06c5488671e
-// ═══════════════════════════════════════════════════════════════
-
 const REAL_CODE = [
-  // ── ensureRootIsScheduled ──
-  `// ═══ ensureRootIsScheduled ═══════════════════════════════════`,   // 0
-  `export function ensureRootIsScheduled(root: FiberRoot): void {`,    // 1
-  `  // Эта функция вызывается каждый раз, когда root получает обновление.`,  // 2
-  `  // Она делает ровно две вещи:`,                                   // 3
-  `  // 1) гарантирует, что root находится в расписании (linked list),`, // 4
-  `  // 2) гарантирует, что существует микрозадача для обработки расписания.`, // 5
-  ``,                                                                   // 6
-  `  // Добавляем root в расписание`,                                   // 7
-  `  if (root === lastScheduledRoot || root.next !== null) {`,          // 8
-  `    // Быстрый путь: этот root уже запланирован, ничего не делаем.`, // 9
-  `  } else {`,                                                         // 10
-  `    if (lastScheduledRoot === null) {`,                              // 11
-  `      firstScheduledRoot = lastScheduledRoot = root;`,               // 12
-  `    } else {`,                                                       // 13
-  `      lastScheduledRoot.next = root;`,                               // 14
-  `      lastScheduledRoot = root;`,                                    // 15
-  `    }`,                                                              // 16
-  `  }`,                                                                // 17
-  ``,                                                                   // 18
-  `  // При каждом обновлении root ставим true, пока не обработаем.`,   // 19
-  `  // Если false — можно быстро выйти из flushSync без проверки.`,   // 20
-  `  mightHavePendingSyncWork = true;`,                                 // 21
-  ``,                                                                   // 22
-  `  // Планируем микрозадачу (если ещё не запланирована)`,             // 23
-  `  ensureScheduleIsScheduled();`,                                     // 24
-  `  // ^ внутри делает:`,                                             // 25
-  `  // if (!didScheduleMicrotask) {`,                                  // 26
-  `  //   didScheduleMicrotask = true;`,                                // 27
-  `  //   scheduleImmediateTask(processRootScheduleInMicrotask);`,      // 28
-  `  // }`,                                                             // 29
-  ``,                                                                   // 30
-  `  // DEV-only: пометка устаревших (legacy) обновлений для act()`,   // 31
-  `  if (__DEV__ && !disableLegacyMode`,                                // 32
-  `      && ReactSharedInternals.isBatchingLegacy`,                     // 33
-  `      && root.tag === LegacyRoot) {`,                                // 34
-  `    ReactSharedInternals.didScheduleLegacyUpdate = true;`,           // 35
-  `  }`,                                                                // 36
-  `}`,                                                                  // 37
-  ``,                                                                   // 38
-  // ── processRootScheduleInMicrotask ──
-  `// ═══ processRootScheduleInMicrotask ════════════════════════`,     // 39
-  `function processRootScheduleInMicrotask() {`,                       // 40
-  `  // Всегда вызывается внутри микрозадачи, НИКОГДА синхронно.`,     // 41
-  `  didScheduleMicrotask = false;`,                                   // 42
-  `  mightHavePendingSyncWork = false; // Пересчитаем ниже`,           // 43
-  ``,                                                                   // 44
-  `  // Проверяем: есть ли "нетерпеливые" (eager) transition?`,        // 45
-  `  let syncTransitionLanes = NoLanes;`,                               // 46
-  `  if (currentEventTransitionLane !== NoLane) {`,                     // 47
-  `    if (shouldAttemptEagerTransition()) {`,                          // 48
-  `      syncTransitionLanes = currentEventTransitionLane;`,            // 49
-  `    }`,                                                              // 50
-  `  }`,                                                                // 51
-  ``,                                                                   // 52
-  `  const currentTime = now();`,                                       // 53
-  `  let prev = null;`,                                                 // 54
-  `  let root = firstScheduledRoot; // Начало linked list`,             // 55
-  `  while (root !== null) {`,                                          // 56
-  `    const next = root.next;`,                                        // 57
-  `    // ↓↓↓ Здесь принимается решение о планировании ↓↓↓`,          // 58
-  `    const nextLanes = scheduleTaskForRootDuringMicrotask(`,          // 59
-  `      root, currentTime`,                                           // 60
-  `    );`,                                                             // 61
-  `    if (nextLanes === NoLane) {`,                                    // 62
-  `      // Работы больше нет — удаляем root из расписания`,            // 63
-  `      root.next = null;`,                                            // 64
-  `      if (prev === null) firstScheduledRoot = next;`,                // 65
-  `      else prev.next = next;`,                                       // 66
-  `      if (next === null) lastScheduledRoot = prev;`,                 // 67
-  `    } else {`,                                                       // 68
-  `      prev = root;`,                                                 // 69
-  `      if (includesSyncLane(nextLanes) ||`,                           // 70
-  `          syncTransitionLanes !== NoLanes) {`,                       // 71
-  `        mightHavePendingSyncWork = true; // Есть sync работа!`,      // 72
-  `      }`,                                                            // 73
-  `    }`,                                                              // 74
-  `    root = next; // Следующий root в linked list`,                   // 75
-  `  }`,                                                                // 76
-  ``,                                                                   // 77
-  `  // Выполняем всю накопившуюся синхронную работу`,                  // 78
-  `  flushSyncWorkAcrossRoots_impl(syncTransitionLanes, false);`,       // 79
-  `}`,                                                                  // 80
-  ``,                                                                   // 81
-  // ── scheduleTaskForRootDuringMicrotask ──
-  `// ═══ scheduleTaskForRootDuringMicrotask ════════════════════`,     // 82
-  `function scheduleTaskForRootDuringMicrotask(`,                      // 83
-  `  root: FiberRoot, currentTime: number`,                            // 84
-  `): Lane {`,                                                         // 85
-  `  // Проверяем: не голодают ли какие-то lanes? Помечаем как expired`, // 86
-  `  markStarvedLanesAsExpired(root, currentTime);`,                    // 87
-  ``,                                                                   // 88
-  `  // Определяем следующие lanes для обработки`,                      // 89
-  `  const nextLanes = getNextLanes(root, ...);`,                       // 90
-  `  const existingCallbackNode = root.callbackNode;`,                  // 91
-  ``,                                                                   // 92
-  `  if (nextLanes === NoLanes) {`,                                     // 93
-  `    // Работы нет — отменяем существующий callback`,                 // 94
-  `    if (existingCallbackNode !== null) cancelCallback(it);`,         // 95
-  `    root.callbackNode = null;`,                                      // 96
-  `    root.callbackPriority = NoLane;`,                                // 97
-  `    return NoLane;`,                                                 // 98
-  `  }`,                                                                // 99
-  ``,                                                                   // 100
-  `  // ★ КЛЮЧЕВАЯ ТОЧКА ПРИНЯТИЯ РЕШЕНИЯ ★`,                         // 101
-  `  if (includesSyncLane(nextLanes)) {`,                               // 102
-  `    // SYNC → выполнится в конце микрозадачи, доп. задача не нужна`, // 103
-  `    root.callbackPriority = SyncLane;`,                              // 104
-  `    root.callbackNode = null;`,                                      // 105
-  `    return SyncLane;  // → flushSyncWork() выше сделает рендер`,     // 106
-  `  }`,                                                                // 107
-  ``,                                                                   // 108
-  `  // НЕ SYNC → планируем через Scheduler (MessageChannel = макрозадача)`, // 109
-  `  let schedulerPriorityLevel;`,                                      // 110
-  `  switch (lanesToEventPriority(nextLanes)) {`,                       // 111
-  `    case DiscreteEventPriority:    // Клик, ввод`,                   // 112
-  `    case ContinuousEventPriority:  // Скролл, drag`,                // 113
-  `      schedulerPriorityLevel = UserBlockingPriority; break;`,        // 114
-  `    case DefaultEventPriority:     // Transition, обычное обновление`, // 115
-  `      schedulerPriorityLevel = NormalPriority; break;`,              // 116
-  `    case IdleEventPriority:        // Фоновая работа`,              // 117
-  `      schedulerPriorityLevel = IdlePriority; break;`,                // 118
-  `    default:`,                                                       // 119
-  `      schedulerPriorityLevel = NormalPriority; break;`,              // 120
-  `  }`,                                                                // 121
-  ``,                                                                   // 122
-  `  // ★ Задача уходит в MACROTASK очередь через MessageChannel ★`,   // 123
-  `  const newCallbackNode = scheduleCallback(`,                        // 124
-  `    schedulerPriorityLevel,`,                                        // 125
-  `    performWorkOnRootViaSchedulerTask.bind(null, root),`,            // 126
-  `  );`,                                                               // 127
-  `  root.callbackPriority = newCallbackPriority;`,                     // 128
-  `  root.callbackNode = newCallbackNode;`,                             // 129
-  `  return newCallbackPriority;`,                                      // 130
-  `}`,                                                                  // 131
+
+  `// ═══ ensureRootIsScheduled ═══════════════════════════════════`,
+  `export function ensureRootIsScheduled(root: FiberRoot): void {`,
+  `  // Эта функция вызывается каждый раз, когда root получает обновление.`,
+  `  // Она делает ровно две вещи:`,
+  `  // 1) гарантирует, что root находится в расписании (linked list),`,
+  `  // 2) гарантирует, что существует микрозадача для обработки расписания.`,
+  ``,
+  `  // Добавляем root в расписание`,
+  `  if (root === lastScheduledRoot || root.next !== null) {`,
+  `    // Быстрый путь: этот root уже запланирован, ничего не делаем.`,
+  `  } else {`,
+  `    if (lastScheduledRoot === null) {`,
+  `      firstScheduledRoot = lastScheduledRoot = root;`,
+  `    } else {`,
+  `      lastScheduledRoot.next = root;`,
+  `      lastScheduledRoot = root;`,
+  `    }`,
+  `  }`,
+  ``,
+  `  // При каждом обновлении root ставим true, пока не обработаем.`,
+  `  // Если false — можно быстро выйти из flushSync без проверки.`,
+  `  mightHavePendingSyncWork = true;`,
+  ``,
+  `  // Планируем микрозадачу (если ещё не запланирована)`,
+  `  ensureScheduleIsScheduled();`,
+  `  // ^ внутри делает:`,
+  `  // if (!didScheduleMicrotask) {`,
+  `  //   didScheduleMicrotask = true;`,
+  `  //   scheduleImmediateTask(processRootScheduleInMicrotask);`,
+  `  // }`,
+  ``,
+  `  // DEV-only: пометка устаревших (legacy) обновлений для act()`,
+  `  if (__DEV__ && !disableLegacyMode`,
+  `      && ReactSharedInternals.isBatchingLegacy`,
+  `      && root.tag === LegacyRoot) {`,
+  `    ReactSharedInternals.didScheduleLegacyUpdate = true;`,
+  `  }`,
+  `}`,
+  ``,
+
+  `// ═══ processRootScheduleInMicrotask ════════════════════════`,
+  `function processRootScheduleInMicrotask() {`,
+  `  // Всегда вызывается внутри микрозадачи, НИКОГДА синхронно.`,
+  `  didScheduleMicrotask = false;`,
+  `  mightHavePendingSyncWork = false; // Пересчитаем ниже`,
+  ``,
+  `  // Проверяем: есть ли "нетерпеливые" (eager) transition?`,
+  `  let syncTransitionLanes = NoLanes;`,
+  `  if (currentEventTransitionLane !== NoLane) {`,
+  `    if (shouldAttemptEagerTransition()) {`,
+  `      syncTransitionLanes = currentEventTransitionLane;`,
+  `    }`,
+  `  }`,
+  ``,
+  `  const currentTime = now();`,
+  `  let prev = null;`,
+  `  let root = firstScheduledRoot; // Начало linked list`,
+  `  while (root !== null) {`,
+  `    const next = root.next;`,
+  `    // ↓↓↓ Здесь принимается решение о планировании ↓↓↓`,
+  `    const nextLanes = scheduleTaskForRootDuringMicrotask(`,
+  `      root, currentTime`,
+  `    );`,
+  `    if (nextLanes === NoLane) {`,
+  `      // Работы больше нет — удаляем root из расписания`,
+  `      root.next = null;`,
+  `      if (prev === null) firstScheduledRoot = next;`,
+  `      else prev.next = next;`,
+  `      if (next === null) lastScheduledRoot = prev;`,
+  `    } else {`,
+  `      prev = root;`,
+  `      if (includesSyncLane(nextLanes) ||`,
+  `          syncTransitionLanes !== NoLanes) {`,
+  `        mightHavePendingSyncWork = true; // Есть sync работа!`,
+  `      }`,
+  `    }`,
+  `    root = next; // Следующий root в linked list`,
+  `  }`,
+  ``,
+  `  // Выполняем всю накопившуюся синхронную работу`,
+  `  flushSyncWorkAcrossRoots_impl(syncTransitionLanes, false);`,
+  `}`,
+  ``,
+
+  `// ═══ scheduleTaskForRootDuringMicrotask ════════════════════`,
+  `function scheduleTaskForRootDuringMicrotask(`,
+  `  root: FiberRoot, currentTime: number`,
+  `): Lane {`,
+  `  // Проверяем: не голодают ли какие-то lanes? Помечаем как expired`,
+  `  markStarvedLanesAsExpired(root, currentTime);`,
+  ``,
+  `  // Определяем следующие lanes для обработки`,
+  `  const nextLanes = getNextLanes(root, ...);`,
+  `  const existingCallbackNode = root.callbackNode;`,
+  ``,
+  `  if (nextLanes === NoLanes) {`,
+  `    // Работы нет — отменяем существующий callback`,
+  `    if (existingCallbackNode !== null) cancelCallback(it);`,
+  `    root.callbackNode = null;`,
+  `    root.callbackPriority = NoLane;`,
+  `    return NoLane;`,
+  `  }`,
+  ``,
+  `  // ★ КЛЮЧЕВАЯ ТОЧКА ПРИНЯТИЯ РЕШЕНИЯ ★`,
+  `  if (includesSyncLane(nextLanes)) {`,
+  `    // SYNC → выполнится в конце микрозадачи, доп. задача не нужна`,
+  `    root.callbackPriority = SyncLane;`,
+  `    root.callbackNode = null;`,
+  `    return SyncLane;  // → flushSyncWork() выше сделает рендер`,
+  `  }`,
+  ``,
+  `  // НЕ SYNC → планируем через Scheduler (MessageChannel = макрозадача)`,
+  `  let schedulerPriorityLevel;`,
+  `  switch (lanesToEventPriority(nextLanes)) {`,
+  `    case DiscreteEventPriority:    // Клик, ввод`,
+  `    case ContinuousEventPriority:  // Скролл, drag`,
+  `      schedulerPriorityLevel = UserBlockingPriority; break;`,
+  `    case DefaultEventPriority:     // Transition, обычное обновление`,
+  `      schedulerPriorityLevel = NormalPriority; break;`,
+  `    case IdleEventPriority:        // Фоновая работа`,
+  `      schedulerPriorityLevel = IdlePriority; break;`,
+  `    default:`,
+  `      schedulerPriorityLevel = NormalPriority; break;`,
+  `  }`,
+  ``,
+  `  // ★ Задача уходит в MACROTASK очередь через MessageChannel ★`,
+  `  const newCallbackNode = scheduleCallback(`,
+  `    schedulerPriorityLevel,`,
+  `    performWorkOnRootViaSchedulerTask.bind(null, root),`,
+  `  );`,
+  `  root.callbackPriority = newCallbackPriority;`,
+  `  root.callbackNode = newCallbackNode;`,
+  `  return newCallbackPriority;`,
+  `}`,
 ];
 
 const BASE: VizState = {
@@ -184,8 +176,6 @@ const BASE: VizState = {
 function s(overrides: Partial<VizState>): VizState {
   return { ...BASE, ...overrides };
 }
-
-// ─── Scenario A: Synchronous setState ───────────────────────
 
 const syncSteps: VizState[] = [
   s({
@@ -318,8 +308,6 @@ const syncSteps: VizState[] = [
     paintReady: true,
   }),
 ];
-
-// ─── Scenario B: startTransition + setState ─────────────────
 
 const transitionSteps: VizState[] = [
   s({

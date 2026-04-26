@@ -24,22 +24,22 @@ export default function FpsMeter() {
     return () => cancelAnimationFrame(rafId.current);
   }, []);
 
-  // Input latency: measure via PerformanceObserver if available
   useEffect(() => {
     if (!("PerformanceObserver" in window)) return;
     try {
       const obs = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if ((entry as any).processingStart) {
-            const lat = (entry as any).processingStart - entry.startTime;
+          const eventEntry = entry as PerformanceEventTiming;
+          if (eventEntry.processingStart) {
+            const lat = eventEntry.processingStart - eventEntry.startTime;
             setLatency(Math.round(lat));
           }
         }
       });
-      obs.observe({ type: "event", buffered: false } as any);
+      obs.observe({ type: "event", buffered: false } as PerformanceObserverInit);
       return () => obs.disconnect();
     } catch {
-      // not supported
+      return;
     }
   }, []);
 

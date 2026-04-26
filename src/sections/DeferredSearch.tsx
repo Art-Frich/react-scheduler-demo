@@ -11,10 +11,7 @@ function generateLargeListOfItems(count: number) {
 
 const ALL_ITEMS = generateLargeListOfItems(20_000);
 
-// memo — ключевой элемент паттерна из книги (стр. 246):
-// ItemList не ре-рендерится пока items (filteredItems) не изменился
 const ItemList = memo(function ItemList({ items }: { items: string[] }) {
-  "use no memo";
   return (
     <ul className="deferred-list">
       {items.map((item, i) => (
@@ -30,8 +27,6 @@ export default function DeferredSearch() {
 
   const deferredFilter = useDeferredValue(filter);
 
-  // Книга (стр. 246): filteredItems через useMemo в родителе,
-  // привязан к deferredFilter — пересчитывается только когда он меняется
   const activeFilter = useDeferred ? deferredFilter : filter;
 
   const filteredItems = useMemo(() =>
