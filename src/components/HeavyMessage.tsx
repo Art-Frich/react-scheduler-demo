@@ -2,7 +2,7 @@ import type { FakeMessage } from "./FakeWebSocket";
 
 function heavyWork() {
   const start = performance.now();
-  while (performance.now() - start < 4);
+  while (performance.now() - start < 6);
 }
 
 export default function HeavyMessage({ msg }: { msg: FakeMessage }) {

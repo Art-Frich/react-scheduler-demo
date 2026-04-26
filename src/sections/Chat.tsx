@@ -6,10 +6,10 @@ import { startFakeStream, type FakeMessage } from "../components/FakeWebSocket";
 
 let ownId = -1;
 
-export default function FastChat() {
+export default function Chat() {
   const [messages, setMessages] = useState<FakeMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
-  const [useTransitionMode, setUseTransitionMode] = useState(true);
+  const [useTransitionMode, setUseTransitionMode] = useState(false);
   const [isPending, startTransition] = useTransition();
   const stopRef = useRef<(() => void) | null>(null);
 
@@ -24,7 +24,7 @@ export default function FastChat() {
       } else {
         setMessages((prev) => [...prev, msg]);
       }
-    }, 200);
+    }, 150);
     return () => {
       stopRef.current?.();
       stopRef.current = null;
@@ -32,6 +32,13 @@ export default function FastChat() {
   }, [streaming, useTransitionMode]);
 
   const toggleStream = () => setStreaming((s) => !s);
+
+  const reset = () => {
+    setMessages([]);
+    setStreaming(false);
+    stopRef.current?.();
+    stopRef.current = null;
+  };
 
   const handleSend = (text: string) => {
     setMessages((prev) => [
@@ -42,10 +49,10 @@ export default function FastChat() {
 
   return (
     <div className="section">
-      <h2>Быстрый чат</h2>
+      <h2>Чат с потоком сообщений</h2>
       <p className="subtitle">
-        Переключайте режим и сравнивайте. С <code>useTransition</code> ввод
-        остаётся отзывчивым даже при потоке сообщений.
+        Поток входящих сообщений + поле ввода. Включи поток, попробуй печатать в обоих режимах.
+        Чем больше сообщений накопится — тем заметнее разница.
       </p>
 
       <div className="chat-container">
@@ -63,6 +70,10 @@ export default function FastChat() {
             >
               {streaming ? "Остановить поток" : "Запустить поток"}
             </button>
+            <div className="stream-stats">{messages.length} сообщений</div>
+            {messages.length > 0 && (
+              <button className="tear-reset-btn" onClick={reset}>очистить</button>
+            )}
           </div>
 
           <div className="toggle-card">
@@ -90,16 +101,16 @@ export default function FastChat() {
                 <strong style={{ color: "var(--accent-transition)" }}>
                   startTransition
                 </strong>{" "}
-                оборачивает <code>setMessages</code> — React откладывает
-                рендеринг списка, давая приоритет вводу пользователя.
+                оборачивает <code>setMessages</code> — рендер списка попадает в
+                Transition Lane, ввод и FPS остаются плавными.
               </>
             ) : (
               <>
                 <strong style={{ color: "var(--accent-sync)" }}>
                   Синхронный режим
                 </strong>{" "}
-                — обновления рендерятся немедленно, блокируя main thread и
-                замедляя ввод.
+                — каждое входящее сообщение блокирует main thread. Чем больше сообщений в
+                списке, тем дольше ре-рендер и тем сильнее лагает ввод.
               </>
             )}
           </div>
